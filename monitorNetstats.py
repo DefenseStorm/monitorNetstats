@@ -25,8 +25,8 @@ class integration(object):
             if "receive buffer errors" in line:
                 err_count2 = line.split()
         ret_val = {}
+        ret_val['received_packets'] = int(err_count[0])
         ret_val['error'] = int(err_count2[0])
-        ret_val['received_packets'] = int(err_count2[0])
         return ret_val
 
 
