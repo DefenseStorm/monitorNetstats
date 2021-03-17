@@ -132,11 +132,15 @@ class integration(object):
         self.ds.writeJSONEvent(event_data)
 
         conns, totals = self.get_iftopInfo()
-        totals['message'] = 'iftop Totals'
-        self.ds.writeJSONEvent(totals)
+        event = {}
+        event['message'] = 'iftop Totals'
+        event['details'] = totals
+        self.ds.writeJSONEvent(event)
         for conn in conns:
-            conn['message'] = 'iftop connection'
-            self.ds.writeJSONEvent(totals)
+            event = {}
+            event['message'] = 'iftop connection'
+            event['details'] = conn
+            self.ds.writeJSONEvent(event)
 
         list = self.get_udpConnectionCounts(timeout=5)
         if len(list) == 0:
@@ -160,7 +164,7 @@ class integration(object):
                 event = {}
                 event['message'] = 'UDP Buffer Info'
                 event['details'] = item
-                self.ds.writeJSONEvent(item)
+                self.ds.writeJSONEvent(event)
 
 
     def usage(self):
