@@ -145,8 +145,10 @@ class integration(object):
             self.ds.writeJSONEvent(item)
         else:
             for item in list:
-                item['message'] = 'UDP Connection Counts'
-                self.ds.writeJSONEvent(item)
+                event = {}
+                event['message'] = 'UDP Connection Counts'
+                event['details'] = item
+                self.ds.writeJSONEvent(event)
 
         list = self.get_udpBufferInfo()
         if len(list) == 0:
@@ -155,7 +157,9 @@ class integration(object):
             self.ds.writeJSONEvent(item)
         else:
             for item in list:
-                item['message'] = 'UDP Buffer Info'
+                event = {}
+                event['message'] = 'UDP Buffer Info'
+                event['details'] = item
                 self.ds.writeJSONEvent(item)
 
 
