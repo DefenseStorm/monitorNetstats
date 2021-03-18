@@ -143,15 +143,15 @@ class integration(object):
             self.ds.writeJSONEvent(event)
 
         list = self.get_udpConnectionCounts(timeout=5)
-        if len(list) == 0:
+        if len(list.keys()) == 0:
             item = {}
             item['message'] = 'No UDP Connection Counts'
             self.ds.writeJSONEvent(item)
         else:
-            for item in list:
+            for item in list.keys():
                 event = {}
                 event['message'] = 'UDP Connection Counts'
-                event['details'] = item
+                event[item] = list[item]
                 self.ds.writeJSONEvent(event)
 
         list = self.get_udpBufferInfo()
