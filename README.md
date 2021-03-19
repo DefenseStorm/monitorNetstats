@@ -1,5 +1,13 @@
 Monitor DVM for UDP Network Errors for DefenseStorm
 
+NOTE - This should be installed in /usr/local and should be run as root.
+
+NOTE - This integration requires:
+	tcpdump
+	iftop
+	netstat
+
+
 to pull this repository and submodules:
 
 git clone --recurse-submodules https://github.com/DefenseStorm/monitorNetstats.git
