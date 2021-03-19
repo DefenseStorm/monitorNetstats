@@ -98,9 +98,9 @@ class integration(object):
             except:
                 continue
             if ip_addr not in ip_list.keys():
-                ip_list[ip_addr] = int(info[7])
+                ip_list[ip_addr] = int(info[8])
             else:
-                ip_list[ip_addr] += int(info[7])
+                ip_list[ip_addr] += int(info[8])
         return ip_list 
 
 
