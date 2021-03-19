@@ -84,9 +84,9 @@ class integration(object):
             item_list.append(item)
         return item_list
 
-    def get_udpConnectionCounts(self,timeout=2):
+    def get_udpConnectionCounts(self,timeout=2, port='514'):
 
-        command = subprocess.Popen('timeout %d tcpdump -n port 516 and udp' %timeout, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
+        command = subprocess.Popen('timeout %d tcpdump -n port %s and udp' %(timeout, port), shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
         output, error = command.communicate()
         lines = output.decode("utf-8").split('\n')
         ip_list = {}
@@ -142,17 +142,21 @@ class integration(object):
             event['details'] = conn
             self.ds.writeJSONEvent(event)
 
-        list = self.get_udpConnectionCounts(timeout=5)
-        if len(list.keys()) == 0:
-            item = {}
-            item['message'] = 'No UDP Connection Counts'
-            self.ds.writeJSONEvent(item)
-        else:
-            for item in list.keys():
-                event = {}
-                event['message'] = 'UDP Connection Counts'
-                event[item] = list[item]
-                self.ds.writeJSONEvent(event)
+        portlist = ['514', '516']
+        for port in portlist:
+            list = self.get_udpConnectionCounts(timeout=5, port=port)
+            if len(list.keys()) == 0:
+                item = {}
+                item['message'] = 'No UDP Connection Counts'
+                item['port'] = port
+                self.ds.writeJSONEvent(item)
+            else:
+                for item in list.keys():
+                    event = {}
+                    event['message'] = 'UDP Connection Counts'
+                    event['port'] = port
+                    event[item] = list[item]
+                    self.ds.writeJSONEvent(event)
 
         list = self.get_udpBufferInfo()
         if len(list) == 0:
