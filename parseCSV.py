@@ -1,7 +1,27 @@
+#!/usr/bin/env python3
 
+import sys,os
 import csv
 
-with open('DefenseStorm-search (1).csv') as csv_file:
+
+def usage():
+    print('\nUsage:\n')
+    print('parse_csv.py <filename>')
+    print('')
+    print('Where <filename> is the downloaded csv from from a search "app_name:monitorNetstat"')
+    print('')
+
+try:
+    if not os.path.exists(sys.argv[1]):
+        print('\nFile not found: ' + sys.argv[1])
+        usage()
+except:
+    usage()
+    sys.exit()
+
+prefix = sys.argv[1].split('.')[0]
+
+with open(sys.argv[1]) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
     udp_buffer_info = []
@@ -57,45 +77,49 @@ with open('DefenseStorm-search (1).csv') as csv_file:
                     item = item.strip().split('details_')[1]
                     name, value = item.split('=')
                     entry[name] = value
+                    if 'Kb' in entry[name]:
+                        entry[name] = float(entry[name].strip('Kb')) * 128
+                    elif 'KB' in entry[name]:
+                        entry[name] = float(entry[name].strip('KB')) * 1024
+                    elif 'Mb' in entry[name]:
+                        entry[name] = float(entry[name].strip('Mb')) * 131072
+                    elif 'b' in entry[name]:
+                        entry[name] = float(entry[name].strip('b'))
+                        if entry[name] > 0:
+                            entry[name] = entry[name] / 8
+                    elif 'B' in entry[name]:
+                        entry[name] = float(entry[name].strip('B'))
+                        
                 iftop_connections.append(entry)
             elif 'Network Errors Detected' in message:
                 entry = {}
                 entry['timestamp'] = timestamp
-                '''
-                additional_fields = row[0][+1:-1].split(',')
-                for item in additional_fields:
-                    item = item.strip().split('details_')[1]
-                    name, value = item.split('=')
-                    entry[name] = value
-                '''
                 entry['receive_buffer_errors'] = row[5]
                 entry['packet_receive_err'] = row[11]
                 udp_network_errors.append(entry)
 
 keys = udp_buffer_info[0].keys()
-with open('udp_buffer_info.csv', 'w', newline='') as output_file:
+with open(prefix + '_' + 'udp_buffer_info.csv', 'w', newline='') as output_file:
     dict_writer = csv.DictWriter(output_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(udp_buffer_info)
 
 keys = iftop_totals[0].keys()
-with open('iftop_totals.csv', 'w', newline='') as output_file:
+with open(prefix + '_' + 'iftop_totals.csv', 'w', newline='') as output_file:
     dict_writer = csv.DictWriter(output_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(iftop_totals)
 
 keys = iftop_connections[0].keys()
-with open('iftop_connections.csv', 'w', newline='') as output_file:
+with open(prefix + '_' + 'iftop_connections.csv', 'w', newline='') as output_file:
     dict_writer = csv.DictWriter(output_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(iftop_connections)
 
 keys = udp_network_errors[0].keys()
-with open('udp_network_errors.csv', 'w', newline='') as output_file:
+with open(prefix + '_' + 'udp_network_errors.csv', 'w', newline='') as output_file:
     dict_writer = csv.DictWriter(output_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(udp_network_errors)
 
-#print(udp_buffer_info)
-#print(iftop_totals)
 
