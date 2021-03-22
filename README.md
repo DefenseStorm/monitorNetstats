@@ -30,3 +30,17 @@ filter f_messages { level(info,notice,warn) and not facility(auth,authpriv,cron,
    5 minutes (or what you think is appropriate)
 
    */5 * * * * cd /usr/local/monitorNetstats; ./monitorNetstats.py
+
+To use the included parseCSV.py script:
+
+1) use the query "app_name:monitorNetstat" to query the data. You can also filter to a single DVM (with api_key) as well as filter the timeframe.  Do not filter the data beyond that as the parse script will fail.
+
+2) Run the parseCSV.py scirpt against the data by providing the name of the CSV file from GRID.  The parsing script will write out 4 files:
+- <CSV_NAME>_iftop_connections.csv
+- <CSV_NAME>_udp_buffer_info.csv
+- <CSV_NAME>_iftop_totals.csv
+- <CSV_NAME>_udp_network_errors.csv
+
+into the current directory.
+
+- 
