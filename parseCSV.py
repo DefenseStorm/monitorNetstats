@@ -2,6 +2,7 @@
 
 import sys,os
 import csv
+from datetime import datetime
 
 
 def usage():
@@ -28,6 +29,7 @@ with open(sys.argv[1]) as csv_file:
     iftop_totals = []
     iftop_connections = []
     udp_network_errors = []
+    consolidated_data = {}
     for row in csv_reader:
         if line_count == 0:
             #print(f'Column names are {", ".join(row)}')
@@ -51,6 +53,9 @@ with open(sys.argv[1]) as csv_file:
             line_count += 1
         else:
             timestamp = row[header['timestamp']]
+            date_str = datetime.fromtimestamp(int(timestamp) / 1000.0).strftime('%Y-%m-%d %H:%M')
+            if date_str not in consolidated_data.keys():
+                consolidated_data[date_str] = {}
             message = row[header['message']]
             hostname = row[header['hostname']]
             #print(message)
@@ -66,6 +71,8 @@ with open(sys.argv[1]) as csv_file:
                     entry[name] = value
                 entry['tx_queue'] = int('0x' + str(entry['tx_queue']), 0)
                 entry['rx_queue'] = int('0x' + str(entry['rx_queue']), 0)
+                consolidated_data[date_str]['tx_queue'] = entry['tx_queue']
+                consolidated_data[date_str]['rx_queue'] = entry['rx_queue']
                 udp_buffer_info.append(entry)
             elif message == 'iftop Totals':
                 entry = {}
@@ -89,6 +96,7 @@ with open(sys.argv[1]) as csv_file:
                             entry[name] = entry[name] / 8
                     elif 'B' in entry[name]:
                         entry[name] = float(entry[name].strip('B'))
+                    consolidated_data[date_str][name] = entry[name]
                 iftop_totals.append(entry)
             elif message == 'UDP Connection Counts':
                 #Need to finish this one
@@ -133,6 +141,8 @@ with open(sys.argv[1]) as csv_file:
                 entry['timestamp'] = timestamp
                 entry['receive_buffer_errors'] = row[header['received_packets']]
                 entry['packet_receive_err'] = row[header['error']]
+                consolidated_data[date_str]['receive_buffer_errors'] = entry['receive_buffer_errors']
+                consolidated_data[date_str]['packet_receive_err'] = entry['packet_receive_err']
                 udp_network_errors.append(entry)
 
 keys = udp_buffer_info[0].keys()
@@ -158,5 +168,20 @@ with open(prefix + '_' + 'udp_network_errors.csv', 'w', newline='') as output_fi
     dict_writer = csv.DictWriter(output_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(udp_network_errors)
+
+
+consolidated_list = []
+for key in consolidated_data.keys():
+    item = {}
+    item['date_time'] = key
+    for thisitem in consolidated_data[key].keys():
+        item[thisitem] = consolidated_data[key][thisitem]
+    consolidated_list.append(item)
+
+keys = consolidated_list[0].keys()
+with open(prefix + '_' + 'consolidated.csv', 'w', newline='') as output_file:
+    dict_writer = csv.DictWriter(output_file, keys)
+    dict_writer.writeheader()
+    dict_writer.writerows(consolidated_list)
 
 
