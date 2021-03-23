@@ -27,6 +27,6 @@ filter f_messages { level(info,notice,warn) and not facility(auth,authpriv,cron,
     service syslog-ng restart
 
 2. Add the following entry to the root crontab so the script will run every
-   5 minutes (or what you think is appropriate)
+    minute (or what you think is appropriate)
 
-   */5 * * * * cd /usr/local/monitorNetstats; ./monitorNetstats.py
+   * * * * * cd /usr/local/monitorNetstats; ./monitorNetstats.py

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys,os,getopt
+import socket
 import traceback
 import os
 import re
@@ -122,6 +123,7 @@ class integration(object):
 
 
     def run(self):
+        event_list = []
 
         event_data = self.getUDPErrors()
         if event_data['error'] == 0 and event_data['received_packets'] == 0:
@@ -129,18 +131,18 @@ class integration(object):
         else:
             msg = 'Network Errors Detected, received_packets = "packet receive err", error = "receive buffer errors"'
         event_data['message'] = msg
-        self.ds.writeJSONEvent(event_data)
+        event_list.append(event_data)
 
         conns, totals = self.get_iftopInfo()
         event = {}
         event['message'] = 'iftop Totals'
         event['details'] = totals
-        self.ds.writeJSONEvent(event)
+        event_list.append(event)
         for conn in conns:
             event = {}
             event['message'] = 'iftop connection'
             event['details'] = conn
-            self.ds.writeJSONEvent(event)
+            event_list.append(event)
 
         portlist = ['514', '516']
         for port in portlist:
@@ -149,26 +151,76 @@ class integration(object):
                 item = {}
                 item['message'] = 'No UDP Connection Counts'
                 item['port'] = port
-                self.ds.writeJSONEvent(item)
+                event_list.append(item)
             else:
                 for item in list.keys():
                     event = {}
                     event['message'] = 'UDP Connection Counts'
                     event['port'] = port
                     event[item] = list[item]
-                    self.ds.writeJSONEvent(event)
+                    event_list.append(event)
 
         list = self.get_udpBufferInfo()
         if len(list) == 0:
             item = {}
             item['message'] = 'No UDP Buffer Info'
-            self.ds.writeJSONEvent(item)
+            event_list.append(item)
         else:
             for item in list:
                 event = {}
                 event['message'] = 'UDP Buffer Info'
                 event['details'] = item
-                self.ds.writeJSONEvent(event)
+                event_list.append(event)
+        syslog_stats = self.getSyslogStats()
+        event = {}
+        event['message'] = 'Syslog Stats'
+        event['details'] = syslog_stats
+        event_list.append(event)
+
+        for item in event_list:
+            self.ds.writeJSONEvent(item)
+
+    def getSyslogStats(self):
+        server_address = '/var/lib/syslog-ng/syslog-ng.ctl'
+
+        try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.connect(server_address)
+
+            sock.sendall('STATS\n'.encode())
+
+            results = ''
+            while '\n.\n' not in results:
+                results += sock.recv(4096).decode('utf-8')
+        except socket.error as msg:
+            return {}
+        finally:
+            sock.close()
+
+        syslogStats = {
+            'DroppedEvents': 0,
+            'ProcessedEvents': 0,
+            'StoredEvents': 0
+            }
+
+        for line in results.split('\n'):
+            if not 'd_praesidiosqs_' in line:
+                continue
+            parts = line.split(';')
+            dest = parts[1].split('#')[0].split('_')[-1]
+            count = int(parts[-1])
+            if 'dropped' in line:
+                syslogStats['DroppedEvents'] += count
+                syslogStats['DroppedEvents' + dest] = count
+            elif 'processed' in line:
+                syslogStats['ProcessedEvents'] += count
+                syslogStats['ProcessedEvents' + dest] = count
+            elif 'stored' in line:
+                syslogStats['StoredEvents'] += count
+                syslogStats['StoredEvents' + dest] = count
+
+        return syslogStats
+
 
 
     def usage(self):
