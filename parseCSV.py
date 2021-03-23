@@ -31,48 +31,46 @@ with open(sys.argv[1]) as csv_file:
     for row in csv_reader:
         if line_count == 0:
             #print(f'Column names are {", ".join(row)}')
+            header = {}
+            counter = 0
+            for item in row:
+                if item == 'additional_fields':
+                    header['additional_fields'] = counter
+                elif item == 'timestamp':
+                    header['timestamp'] = counter
+                elif item == 'received_packets':
+                    header['received_packets'] = counter
+                elif item == 'error':
+                    header['error'] = counter
+                elif item == 'hostname':
+                    header['hostname'] = counter
+                elif item == 'message':
+                    header['message'] = counter
+                counter += 1
+                    
             line_count += 1
         else:
-            timestamp = row[17]
-            message = row[9]
-            hostname = row[6]
+            timestamp = row[header['timestamp']]
+            message = row[header['message']]
+            hostname = row[header['hostname']]
             #print(message)
             line_count += 1
             entry = {}
             entry['timestamp'] = timestamp
             entry['hostname'] = hostname
             if message == 'UDP Buffer Info':
-                additional_fields = row[0][+1:-1].split(',')
+                additional_fields = row[header['additional_fields']][+1:-1].split(',')
                 for item in additional_fields:
                     item = item.strip().split('details_')[1]
                     name, value = item.split('=')
                     entry[name] = value
+                entry['tx_queue'] = int('0x' + str(entry['tx_queue']), 0)
+                entry['rx_queue'] = int('0x' + str(entry['rx_queue']), 0)
                 udp_buffer_info.append(entry)
             elif message == 'iftop Totals':
                 entry = {}
                 entry['timestamp'] = timestamp
-                additional_fields = row[0][+1:-1].split(',')
-                for item in additional_fields:
-                    item = item.strip().split('details_')[1]
-                    name, value = item.split('=')
-                    entry[name] = value
-                iftop_totals.append(entry)
-            elif message == 'UDP Connection Counts':
-                #Need to finish this one
-                entry = {}
-                entry['timestamp'] = timestamp
-                additional_fields = row[0][+1:-1].split(',')
-                for item in additional_fields:
-                    name, value = item.split('=')
-                    entry['sourceip_port'] = value
-                    entry['received_packets'] = row[11]
-                    entry['received_packets'] = row[11]
-
-                #iftop_totals.append(entry)
-            elif message == 'iftop connection':
-                entry = {}
-                entry['timestamp'] = timestamp
-                additional_fields = row[0][+1:-1].split(',')
+                additional_fields = row[header['additional_fields']][+1:-1].split(',')
                 for item in additional_fields:
                     item = item.strip().split('details_')[1]
                     name, value = item.split('=')
@@ -83,6 +81,45 @@ with open(sys.argv[1]) as csv_file:
                         entry[name] = float(entry[name].strip('KB')) * 1024
                     elif 'Mb' in entry[name]:
                         entry[name] = float(entry[name].strip('Mb')) * 131072
+                    elif 'MB' in entry[name]:
+                        entry[name] = float(entry[name].strip('MB')) * 1048576
+                    elif 'b' in entry[name]:
+                        entry[name] = float(entry[name].strip('b'))
+                        if entry[name] > 0:
+                            entry[name] = entry[name] / 8
+                    elif 'B' in entry[name]:
+                        entry[name] = float(entry[name].strip('B'))
+                iftop_totals.append(entry)
+            elif message == 'UDP Connection Counts':
+                #Need to finish this one
+                entry = {}
+                entry['timestamp'] = timestamp
+                additional_fields = row[header['additional_fields']][+1:-1].split(',')
+                for item in additional_fields:
+                    name, value = item.split('=')
+                    if name in ['port']:
+                        entry[name] = value
+                    else:
+                        entry['sourceip_port'] = name
+                        entry['received_packets'] = value
+
+                #iftop_totals.append(entry)
+            elif message == 'iftop connection':
+                entry = {}
+                entry['timestamp'] = timestamp
+                additional_fields = row[header['additional_fields']][+1:-1].split(',')
+                for item in additional_fields:
+                    item = item.strip().split('details_')[1]
+                    name, value = item.split('=')
+                    entry[name] = value
+                    if 'Kb' in entry[name]:
+                        entry[name] = float(entry[name].strip('Kb')) * 128
+                    elif 'KB' in entry[name]:
+                        entry[name] = float(entry[name].strip('KB')) * 1024
+                    elif 'Mb' in entry[name]:
+                        entry[name] = float(entry[name].strip('Mb')) * 131072
+                    elif 'MB' in entry[name]:
+                        entry[name] = float(entry[name].strip('MB')) * 1048576
                     elif 'b' in entry[name]:
                         entry[name] = float(entry[name].strip('b'))
                         if entry[name] > 0:
@@ -94,8 +131,8 @@ with open(sys.argv[1]) as csv_file:
             elif 'Network Errors Detected' in message:
                 entry = {}
                 entry['timestamp'] = timestamp
-                entry['receive_buffer_errors'] = row[5]
-                entry['packet_receive_err'] = row[11]
+                entry['receive_buffer_errors'] = row[header['received_packets']]
+                entry['packet_receive_err'] = row[header['error']]
                 udp_network_errors.append(entry)
 
 keys = udp_buffer_info[0].keys()
