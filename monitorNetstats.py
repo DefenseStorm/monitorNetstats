@@ -215,7 +215,7 @@ class integration(object):
             elif 'processed' in line:
                 syslogStats['ProcessedEvents'] += count
                 syslogStats['ProcessedEvents' + dest] = count
-            elif 'stored' in line:
+            elif 'queued' in line:
                 syslogStats['StoredEvents'] += count
                 syslogStats['StoredEvents' + dest] = count
 
