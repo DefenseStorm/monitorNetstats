@@ -143,7 +143,7 @@ class integration(object):
             event['message'] = 'iftop connection'
             event['details'] = conn
             event_list.append(event)
-
+        '''
         portlist = ['514', '516']
         for port in portlist:
             list = self.get_udpConnectionCounts(timeout=5, port=port)
@@ -159,7 +159,7 @@ class integration(object):
                     event['port'] = port
                     event[item] = list[item]
                     event_list.append(event)
-
+        '''
         list = self.get_udpBufferInfo()
         if len(list) == 0:
             item = {}
