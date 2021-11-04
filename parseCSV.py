@@ -75,10 +75,14 @@ with open(sys.argv[1]) as csv_file:
                 consolidated_data[date_str]['rx_queue'] = entry['rx_queue']
                 udp_buffer_info.append(entry)
             elif message == 'iftop Totals':
+                continue
                 entry = {}
                 entry['timestamp'] = timestamp
                 additional_fields = row[header['additional_fields']][+1:-1].split(',')
                 for item in additional_fields:
+                    #print("\"" + item + "\"")
+                    if item == "":
+                        continue
                     item = item.strip().split('details_')[1]
                     name, value = item.split('=')
                     entry[name] = value
@@ -144,6 +148,15 @@ with open(sys.argv[1]) as csv_file:
                 consolidated_data[date_str]['receive_buffer_errors'] = entry['receive_buffer_errors']
                 consolidated_data[date_str]['packet_receive_err'] = entry['packet_receive_err']
                 udp_network_errors.append(entry)
+            elif message == 'Syslog Stats':
+                entry = {}
+                entry['timestamp'] = timestamp
+                additional_fields = row[header['additional_fields']][+1:-1].split(',')
+                for item in additional_fields:
+                    item = item.strip().split('details_')[1]
+                    name, value = item.split('=')
+                    entry[name] = value
+                    consolidated_data[date_str][name] = value
 
 keys = udp_buffer_info[0].keys()
 with open(prefix + '_' + 'udp_buffer_info.csv', 'w', newline='') as output_file:
@@ -151,17 +164,18 @@ with open(prefix + '_' + 'udp_buffer_info.csv', 'w', newline='') as output_file:
     dict_writer.writeheader()
     dict_writer.writerows(udp_buffer_info)
 
+'''
 keys = iftop_totals[0].keys()
 with open(prefix + '_' + 'iftop_totals.csv', 'w', newline='') as output_file:
     dict_writer = csv.DictWriter(output_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(iftop_totals)
-
 keys = iftop_connections[0].keys()
 with open(prefix + '_' + 'iftop_connections.csv', 'w', newline='') as output_file:
     dict_writer = csv.DictWriter(output_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(iftop_connections)
+'''
 
 keys = udp_network_errors[0].keys()
 with open(prefix + '_' + 'udp_network_errors.csv', 'w', newline='') as output_file:
@@ -171,11 +185,24 @@ with open(prefix + '_' + 'udp_network_errors.csv', 'w', newline='') as output_fi
 
 
 consolidated_list = []
+prev_value = 0
 for key in consolidated_data.keys():
     item = {}
     item['date_time'] = key
+    print(len(consolidated_data[key].keys()))
+    if (len(consolidated_data[key].keys()) == 15):
+        consolidated_data[key]['rx_queue'] = -1
+        consolidated_data[key]['tx_queue'] = -1
+    elif (len(consolidated_data[key].keys()) != 21):
+        print(len(consolidated_data[key].keys()))
+        print(consolidated_data[key].keys())
+        print('skipping')
+        continue
     for thisitem in consolidated_data[key].keys():
         item[thisitem] = consolidated_data[key][thisitem]
+        if thisitem == 'packet_receive_err':
+            item['packet_receive_err_increase'] = prev_value - int(consolidated_data[key][thisitem])
+            prev_value = int(item[thisitem])
     consolidated_list.append(item)
 
 keys = consolidated_list[0].keys()
