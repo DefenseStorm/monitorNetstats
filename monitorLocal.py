@@ -7,6 +7,7 @@ import os
 import re
 import datetime
 import subprocess
+import time
 
 sys.path.insert(0, 'ds-integration')
 from DefenseStorm import DefenseStorm
@@ -123,6 +124,33 @@ class integration(object):
 
 
     def run(self):
+
+        print('date,rx_queue,rec_buf_err,ProcessedEvents')
+        syslog_stats=self.getSyslogStats()
+        current_event_count = int(syslog_stats['ProcessedEvents'])
+        last_event_count = current_event_count
+        udp_errors = self.getUDPErrors()
+        last_udp_errors = udp_errors['error']
+        while True:
+            syslog_stats=self.getSyslogStats()
+            current_event_count = int(syslog_stats['ProcessedEvents'])
+            date_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            udp_errors = self.getUDPErrors()
+            curr_udp_errors = udp_errors['error']
+            udp_buf_info = self.get_udpBufferInfo()
+            if len(udp_buf_info) > 0:
+                rx_queue = int('0x' + str(udp_buf_info[0]['rx_queue']), 0)
+            else:
+                rx_queue = 0
+            print("%s,%s,%s,%s" %(date_str, rx_queue,str(curr_udp_errors - last_udp_errors),str(current_event_count - last_event_count)))
+            sys.stdout.flush()
+            time.sleep(1)
+            last_event_count = current_event_count
+            last_udp_errors = curr_udp_errors
+
+        sys.exit()
+
+        '''
         event_list = []
 
         event_data = self.getUDPErrors()
@@ -143,7 +171,7 @@ class integration(object):
             event['message'] = 'iftop connection'
             event['details'] = conn
             event_list.append(event)
-        '''
+
         portlist = ['514', '516']
         for port in portlist:
             list = self.get_udpConnectionCounts(timeout=5, port=port)
@@ -159,7 +187,7 @@ class integration(object):
                     event['port'] = port
                     event[item] = list[item]
                     event_list.append(event)
-        '''
+
         list = self.get_udpBufferInfo()
         if len(list) == 0:
             item = {}
@@ -179,6 +207,7 @@ class integration(object):
 
         for item in event_list:
             self.ds.writeJSONEvent(item)
+        '''
 
     def getSyslogStats(self):
         server_address = '/var/lib/syslog-ng/syslog-ng.ctl'
@@ -197,6 +226,7 @@ class integration(object):
         finally:
             sock.close()
 
+
         syslogStats = {
             'DroppedEvents': 0,
             'ProcessedEvents': 0,
@@ -204,7 +234,7 @@ class integration(object):
             }
 
         for line in results.split('\n'):
-            if not 'd_praesidiosqs_' in line:
+            if not 'd_praesidiosqs-perf_' in line:
                 continue
             parts = line.split(';')
             dest = parts[1].split('#')[0].split('_')[-1]
@@ -215,7 +245,7 @@ class integration(object):
             elif 'processed' in line:
                 syslogStats['ProcessedEvents'] += count
                 syslogStats['ProcessedEvents' + dest] = count
-            elif 'queued' in line:
+            elif 'stored' in line:
                 syslogStats['StoredEvents'] += count
                 syslogStats['StoredEvents' + dest] = count
 
