@@ -7,6 +7,7 @@ import os
 import re
 import datetime
 import subprocess
+import pickle
 
 sys.path.insert(0, 'ds-integration')
 from DefenseStorm import DefenseStorm
@@ -123,9 +124,26 @@ class integration(object):
 
 
     def run(self):
+
+        old_stats = self.ds.get_state('./')
+
         event_list = []
 
         event_data = self.getUDPErrors()
+
+        
+        if old_stats != None:
+            if event_data['error'] > 0:
+                error_dif = event_data['error'] - old_stats['error']
+            else:
+                error_dif = 0
+        else:
+             old_stats['error'] = event_data['error'] 
+             error_dif = 0
+ 
+
+        print('Error state: %d' %error_dif)       
+
         if event_data['error'] == 0 and event_data['received_packets'] == 0:
             msg = 'No Network Errors Detected, received_packets = "packet receive err", error = "receive buffer errors"'
         else:
@@ -179,6 +197,8 @@ class integration(object):
 
         for item in event_list:
             self.ds.writeJSONEvent(item)
+
+        self.ds.get_state('./', old_stats)
 
     def getSyslogStats(self):
         server_address = '/var/lib/syslog-ng/syslog-ng.ctl'
