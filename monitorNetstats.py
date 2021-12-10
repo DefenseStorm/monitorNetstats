@@ -138,11 +138,15 @@ class integration(object):
             else:
                 error_dif = 0
         else:
+             old_stats = {}
              old_stats['error'] = event_data['error'] 
              error_dif = 0
  
-
-        print('Error state: %d' %error_dif)       
+        error_calc_event = {}
+        error_calc_event['message'] = 'Calculated Packet Receive Errors: %d' %error_dif
+        error_calc_event['error'] = error_dif
+        error_calc_event['category'] = 'udp_errors'
+        event_list.append(error_calc_event)
 
         if event_data['error'] == 0 and event_data['received_packets'] == 0:
             msg = 'No Network Errors Detected, received_packets = "packet receive err", error = "receive buffer errors"'
@@ -198,7 +202,7 @@ class integration(object):
         for item in event_list:
             self.ds.writeJSONEvent(item)
 
-        self.ds.get_state('./', old_stats)
+        self.ds.set_state('./', old_stats)
 
     def getSyslogStats(self):
         server_address = '/var/lib/syslog-ng/syslog-ng.ctl'
