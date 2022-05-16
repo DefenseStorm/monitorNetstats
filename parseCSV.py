@@ -153,6 +153,8 @@ with open(sys.argv[1]) as csv_file:
                 entry['timestamp'] = timestamp
                 additional_fields = row[header['additional_fields']][+1:-1].split(',')
                 for item in additional_fields:
+                    if item == "":
+                        continue
                     item = item.strip().split('details_')[1]
                     name, value = item.split('=')
                     entry[name] = value
