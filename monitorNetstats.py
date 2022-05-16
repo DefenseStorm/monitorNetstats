@@ -137,11 +137,13 @@ class integration(object):
                 error_dif = event_data['error'] - old_stats['error']
             else:
                 error_dif = 0
+            old_stats['error'] = event_data['error']
         else:
              old_stats = {}
              old_stats['error'] = event_data['error'] 
              error_dif = 0
- 
+
+
         error_calc_event = {}
         error_calc_event['message'] = 'Calculated Packet Receive Errors: %d' %error_dif
         error_calc_event['error'] = error_dif
